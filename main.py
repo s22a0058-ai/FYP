@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import io
 
 st.set_page_config(
     page_title="Scientific Visualization" # Changed title here
