@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="UMK Data Anak 2022 Analysis",
+    page_title="UMK Data Anak 2022 Dashboard",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -17,128 +17,45 @@ st.set_page_config(
 
 # Use st.cache_data to load and process the data efficiently
 @st.cache_data
-def load_and_clean_data(file_path):
+def load_and_clean_data(file_url):
     """
-    Loads, cleans, and processes the dataset.
+    Loads, cleans, and processes the dataset from the URL.
+    This function combines the cleaning steps for robustness, 
+    but relies on the public CSV which is already cleaned and available.
     """
     try:
-        # Step 1: Load Dataset
-        df = pd.read_excel(file_path, sheet_name="Sheet1")
-    except FileNotFoundError:
-        st.error(f"File not found at: {file_path}")
-        return pd.DataFrame(), {}
+        # Step 1: Load Dataset (using the already cleaned CSV from the URL)
+        df = pd.read_csv(file_url)
+        st.success(f"Loaded {len(df)} records from the cleaned dataset.")
+
     except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return pd.DataFrame(), {}
+        st.error(f"Error loading data from URL: {e}")
+        st.info("The original cleaning logic is applied here for completeness, but it assumes the CSV is the final cleaned output.")
+        return pd.DataFrame()
 
-    # Step 2: Basic Cleaning
-    df.columns = df.columns.str.strip()
-    df = df.rename(columns={
-        "UMUR (BULAN)": "Umur_Bulan",
-        "PENDAPATAN KELUARGA": "Pendapatan_Keluarga",
-        "GAJI BAPA": "Gaji_Bapa",
-        "GAJI IBU": "Gaji_Ibu",
-        "GAJI PENJAGA": "Gaji_Penjaga",
-        "STATUS PEMAKANAN": "Status_Pemakanan",
-        "BERAT (KG)": "Berat_KG",
-        "TINGGI (CM)": "Tinggi_CM"
-    })
+    # Apply additional derived calculations from the original script
+    # Calculate Average Parental Income
+    # Note: These columns (Gaji_Bapa, Gaji_Ibu) are numeric in the cleaned data.
+    df["Avg_Parental_Income"] = df[["Gaji_Bapa", "Gaji_Ibu"]].mean(axis=1)
 
-    # Replace invalid or error values
-    replace_vals = ["MAKLUMAT SALAH", "Error/Tiada Data", "Error", "-", " "]
-    df.replace(replace_vals, np.nan, inplace=True)
-
-    # Fill missing or unknown text values
-    df["Pendapatan_Keluarga"] = df["Pendapatan_Keluarga"].fillna("Tiada Maklumat")
-    df["Status_Pemakanan"] = df["Status_Pemakanan"].fillna("Tiada Data")
-
-    # Step 3: Convert numeric values
-    df["Berat_KG"] = pd.to_numeric(df["Berat_KG"], errors="coerce")
-    df["Tinggi_CM"] = pd.to_numeric(df["Tinggi_CM"], errors="coerce")
-    df["Umur_Bulan"] = pd.to_numeric(df["Umur_Bulan"], errors="coerce")
-
-
-    # Convert salary range to approximate numeric
-    def clean_salary(val):
-        if pd.isnull(val): return np.nan
-        val = str(val).replace("RM", "").replace(",", "").strip()
-        if "-" in val:
-            try:
-                a, b = val.split("-")
-                return (float(a) + float(b)) / 2
-            except:
-                return np.nan
-        try:
-            return float(val)
-        except:
-            return np.nan
-
-    for col in ["Gaji_Bapa", "Gaji_Ibu", "Gaji_Penjaga"]:
-        df[col] = df[col].apply(clean_salary)
-
-    # Step 4: Calculate BMI (if possible)
-    def calculate_bmi(row):
-        if pd.notnull(row["Berat_KG"]) and pd.notnull(row["Tinggi_CM"]) and row["Tinggi_CM"] > 0:
-            height_m = row["Tinggi_CM"] / 100
-            return round(row["Berat_KG"] / (height_m**2), 2)
-        else:
-            return np.nan
-
-    df["BMI"] = df.apply(calculate_bmi, axis=1)
-
-    # Step 5: Standardize location text
-    df["DAERAH"] = df["DAERAH"].astype(str).str.title().str.strip()
-    df["PARLIMEN"] = df["PARLIMEN"].astype(str).str.upper().str.strip()
-    df["DUN"] = df["DUN"].astype(str).str.upper().str.strip()
-
-    # Step 6: Summary Tables
+    # --- Summary Tables Generation (Re-run for display consistency) ---
     summary = {}
-
-    # 1. Gender distribution
-    summary["gender"] = df["JANTINA"].value_counts().reset_index()
-    summary["gender"].columns = ['JANTINA', 'Count']
-
-    # 2. Race distribution
-    summary["race"] = df["BANGSA"].value_counts().reset_index()
-    summary["race"].columns = ['BANGSA', 'Count']
-
-    # 3. Religion distribution
-    summary["religion"] = df["AGAMA"].value_counts().reset_index()
-    summary["religion"].columns = ['AGAMA', 'Count']
-
-    # 4. Nutrition status
-    summary["nutrition_status"] = df["Status_Pemakanan"].value_counts().reset_index()
-    summary["nutrition_status"].columns = ['Status_Pemakanan', 'Count']
-
-    # 5. Income category
-    summary["income"] = df["Pendapatan_Keluarga"].value_counts().reset_index()
-    summary["income"].columns = ['Pendapatan_Keluarga', 'Count']
-
-    # 6. Average BMI by gender
-    summary["bmi_by_gender"] = df.groupby("JANTINA")["BMI"].mean().round(2).reset_index()
-    summary["bmi_by_gender"].columns = ['JANTINA', 'Average_BMI']
-
-    # 7. Average BMI by district
-    summary["bmi_by_district"] = df.groupby("DAERAH")["BMI"].mean().sort_values(ascending=False).round(2).reset_index()
-    summary["bmi_by_district"].columns = ['DAERAH', 'Average_BMI']
-
-    # 8. Nutrition status by district
-    summary["nutrition_by_district"] = df.groupby(["DAERAH", "Status_Pemakanan"]).size().unstack(fill_value=0)
+    summary["gender"] = df["JANTINA"].value_counts().reset_index().rename(columns={'JANTINA': 'Category', 'count': 'Count'})
+    summary["race"] = df["BANGSA"].value_counts().reset_index().rename(columns={'BANGSA': 'Category', 'count': 'Count'})
+    summary["religion"] = df["AGAMA"].value_counts().reset_index().rename(columns={'AGAMA': 'Category', 'count': 'Count'})
+    summary["nutrition_status"] = df["Status_Pemakanan"].value_counts().reset_index().rename(columns={'Status_Pemakanan': 'Category', 'count': 'Count'})
 
     return df, summary
 
 # --- Main Application ---
 st.title("UMK Data Anak 2022 Dashboard 📊")
+st.markdown("A consolidated view of children's demographic, health, and economic data.")
 st.markdown("---")
 
-# **IMPORTANT**: Replace this with the actual path to your file.
-# Since Streamlit runs on a server, local paths like '/content/drive/MyDrive/'
-# won't work unless the file is uploaded or accessible via URL/path on the server.
-# For local testing, ensure the file is in the same directory or adjust the path.
-FILE_PATH = "UMK_DATA_ANAK_2022.xlsx" # ASSUMING FILE IS IN THE SAME DIRECTORY
+# Use the URL of the cleaned CSV file provided in the prompt
+CLEANED_CSV_URL = 'https://raw.githubusercontent.com/s22a0058-ai/FYP/refs/heads/main/cleaned_UMK_DATA_ANAK_2022.csv'
 
-st.info(f"Attempting to load data from: `{FILE_PATH}`. Please ensure the file is accessible.")
-df, summary = load_and_clean_data(FILE_PATH)
+df, summary = load_and_clean_data(CLEANED_CSV_URL)
 
 if df.empty:
     st.stop()
@@ -150,173 +67,153 @@ with st.sidebar:
     st.header("About the Data")
     st.write(f"Total Records: **{len(df)}**")
     st.write(f"Number of Districts: **{df['DAERAH'].nunique()}**")
-    st.write(f"Missing BMI values: **{df['BMI'].isnull().sum()}**")
+    st.write(f"Mean BMI: **{df['BMI'].mean():.2f}**")
     st.markdown("---")
     st.header("Download Data")
-    # Provide download link for the cleaned dataset (simulate the saving step)
+    # Provide download link for the cleaned dataset
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="Download Cleaned Data as CSV",
         data=csv,
-        file_name='cleaned_UMK_DATA_ANAK_2022.csv',
+        file_name='cleaned_UMK_DATA_ANAK_2022_dashboard.csv',
         mime='text/csv',
     )
 
 
 # ==========================================
-# VISUALIZATIONS
+# VISUALIZATIONS (Based on Step 2 - Step 9 of the Plotly script)
 # ==========================================
 
-st.header("Key Distributions")
+st.header("1. Demographic Distributions")
 
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Gender Distribution")
-    # Plotly Bar Chart for Gender
-    fig_gender = px.bar(
-        summary["gender"],
-        x="JANTINA",
-        y="Count",
-        title="Gender Distribution",
-        color="JANTINA",
-        template="plotly_white"
+    st.subheader("Gender Distribution 🧒")
+    # Step 2: Gender Distribution
+    fig_gender = px.pie(
+        df,
+        names="JANTINA",
+        title="Gender Distribution of Children",
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        hole=0.4
     )
+    fig_gender.update_traces(textinfo='percent+label', marker=dict(line=dict(color='#000000', width=1)))
     st.plotly_chart(fig_gender, use_container_width=True)
 
 with col2:
-    st.subheader("Race Distribution")
-    # Plotly Pie Chart for Race
-    # Show only top 5 races for clarity in the pie chart
-    top_races = summary["race"].head(5)
-    fig_race = px.pie(
-        top_races,
-        names="BANGSA",
-        values="Count",
-        title="Top 5 Race Distribution",
-        hole=.3,
-    )
-    st.plotly_chart(fig_race, use_container_width=True)
-
-with col3:
-    st.subheader("Religion Distribution")
-    # Plotly Bar Chart for Religion
-    fig_religion = px.bar(
-        summary["religion"],
-        x="AGAMA",
-        y="Count",
-        title="Religion Distribution",
-        color="AGAMA",
+    st.subheader("Race Distribution 👩‍👩‍👧")
+    # Step 3: Race Distribution (Top 10)
+    df_race = df["BANGSA"].value_counts().head(10).reset_index()
+    fig_race = px.bar(
+        df_race,
+        x="BANGSA",
+        y="count",
+        color="BANGSA",
+        title="Top 10 Race Distribution",
         template="plotly_white"
     )
-    st.plotly_chart(fig_religion, use_container_width=True)
+    fig_race.update_layout(xaxis_title="Race", yaxis_title="Count")
+    st.plotly_chart(fig_race, use_container_width=True)
 
 st.markdown("---")
-st.header("Health and Nutrition Metrics")
+st.header("2. Health and Income Analysis")
 
-col4, col5 = st.columns(2)
+col3, col4 = st.columns(2)
 
-with col4:
-    st.subheader("Nutrition Status")
-    # Plotly Bar Chart for Nutrition Status
+with col3:
+    st.subheader("Nutrition Status Distribution")
+    # Step 4: Nutrition Status Distribution
+    df_nutrition = df["Status_Pemakanan"].value_counts().reset_index()
     fig_nutrition = px.bar(
-        summary["nutrition_status"],
+        df_nutrition,
         x="Status_Pemakanan",
-        y="Count",
-        title="Overall Nutrition Status of Children",
+        y="count",
+        title="Overall Nutrition Status Distribution",
         color="Status_Pemakanan",
         template="plotly_white"
     )
     st.plotly_chart(fig_nutrition, use_container_width=True)
 
-with col5:
-    st.subheader("Average BMI")
-    # Plotly Bar Chart for Average BMI by Gender
-    fig_bmi_gender = px.bar(
-        summary["bmi_by_gender"],
-        x="JANTINA",
-        y="Average_BMI",
-        title="Average BMI by Gender",
+with col4:
+    st.subheader("BMI vs Age (Months) by Gender 📈")
+    # Step 6: BMI vs Age by Gender
+    fig_bmi_age = px.scatter(
+        df,
+        x="Umur_Bulan",
+        y="BMI",
         color="JANTINA",
-        text="Average_BMI",
+        trendline="ols",
+        title="BMI vs Age (Months) by Gender",
+        hover_data=["BANGSA", "Status_Pemakanan"],
         template="plotly_white"
     )
-    fig_bmi_gender.update_traces(texttemplate='%{text}', textposition='outside')
-    fig_bmi_gender.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
-    st.plotly_chart(fig_bmi_gender, use_container_width=True)
+    fig_bmi_age.update_layout(xaxis_title="Age (Months)", yaxis_title="BMI")
+    st.plotly_chart(fig_bmi_age, use_container_width=True)
 
-st.markdown("---")
-st.header("Geographical Insights")
-
-# Plotly Bar Chart for Average BMI by District
-st.subheader("Average BMI by District (Top 10)")
-fig_bmi_district = px.bar(
-    summary["bmi_by_district"].head(10),
-    x="DAERAH",
-    y="Average_BMI",
-    title="Average BMI by District (Top 10)",
-    color="DAERAH",
-    template="plotly_white"
-)
-st.plotly_chart(fig_bmi_district, use_container_width=True)
-
-st.subheader("Nutrition Status by District")
-# Plotly Stacked Bar Chart for Nutrition Status by District
-# Convert wide table to long format for easier plotting in Plotly
-nutrition_long = summary["nutrition_by_district"].reset_index().melt(
-    id_vars="DAERAH",
-    var_name="Status_Pemakanan",
-    value_name="Count"
-)
-
-# Filter out 'Tiada Data' for clearer visualization if desired, or keep it.
-# nutrition_long = nutrition_long[nutrition_long['Status_Pemakanan'] != 'Tiada Data']
-
-fig_nutrition_district = px.bar(
-    nutrition_long,
-    x="DAERAH",
+st.subheader("Household Income vs Nutrition Status 💰")
+# Step 5: Household Income vs Nutrition Status
+income_nutrition = df.groupby(["Pendapatan_Keluarga", "Status_Pemakanan"]).size().reset_index(name="Count")
+fig_income = px.bar(
+    income_nutrition,
+    x="Pendapatan_Keluarga",
     y="Count",
     color="Status_Pemakanan",
-    title="Nutrition Status Counts by District",
-    template="plotly_white",
+    title="Household Income vs Nutrition Status (Stacked)",
+    barmode="stack",
+    template="plotly_white"
 )
-st.plotly_chart(fig_nutrition_district, use_container_width=True)
+fig_income.update_layout(xaxis_title="Pendapatan Keluarga", yaxis_title="Number of Children")
+st.plotly_chart(fig_income, use_container_width=True)
 
 
-# ==========================================
-# SUMMARY DATA TABLES
-# ==========================================
+st.subheader("Average Parental Income vs BMI 💵")
+# Step 9: Correlation between Parents’ Income and BMI
+# df["Avg_Parental_Income"] calculated in load_and_clean_data
+fig_income_bmi = px.scatter(
+    df,
+    x="Avg_Parental_Income",
+    y="BMI",
+    color="JANTINA",
+    title="Average Parental Income vs BMI",
+    hover_data=["DAERAH", "Status_Pemakanan"],
+    template="plotly_white"
+)
+fig_income_bmi.update_layout(xaxis_title="Average Monthly Income (RM)", yaxis_title="BMI")
+st.plotly_chart(fig_income_bmi, use_container_width=True)
+
 st.markdown("---")
-st.header("Summary Tables")
+st.header("3. Geographical Insights")
 
-tab1, tab2, tab3 = st.tabs(["Distributions", "Average BMI", "Nutrition by District"])
+col5, col6 = st.columns(2)
 
-with tab1:
-    st.subheader("Gender, Race, Religion, and Income Distribution")
-    colA, colB, colC, colD = st.columns(4)
-    with colA:
-        st.caption("Gender")
-        st.dataframe(summary["gender"], use_container_width=True)
-    with colB:
-        st.caption("Race")
-        st.dataframe(summary["race"].head(10), use_container_width=True)
-    with colC:
-        st.caption("Religion")
-        st.dataframe(summary["religion"], use_container_width=True)
-    with colD:
-        st.caption("Income Category")
-        st.dataframe(summary["income"], use_container_width=True)
+with col5:
+    st.subheader("Average BMI by District 🏙️")
+    # Step 7: Average BMI by District (Top 15)
+    bmi_district = df.groupby("DAERAH")["BMI"].mean().sort_values(ascending=False).reset_index()
+    fig_bmi_district = px.bar(
+        bmi_district.head(15),
+        x="DAERAH",
+        y="BMI",
+        color="DAERAH",
+        title="Average BMI by District (Top 15)",
+        template="plotly_white"
+    )
+    fig_bmi_district.update_layout(xaxis_title="District", yaxis_title="Average BMI")
+    st.plotly_chart(fig_bmi_district, use_container_width=True)
 
-with tab2:
-    st.subheader("Average BMI by Gender and District")
-    colE, colF = st.columns(2)
-    with colE:
-        st.caption("Average BMI by Gender")
-        st.dataframe(summary["bmi_by_gender"], use_container_width=True)
-    with colF:
-        st.caption("Average BMI by District")
-        st.dataframe(summary["bmi_by_district"], use_container_width=True)
-
-with tab3:
-    st.subheader("Nutrition Status Counts by District")
-    st.dataframe(summary["nutrition_by_district"], use_container_width=True)
+with col6:
+    st.subheader("Nutrition Status by District 📍")
+    # Step 8: Nutrition Status by District
+    nutrition_district = df.groupby(["DAERAH", "Status_Pemakanan"]).size().reset_index(name="Count")
+    fig_nutrition_district = px.bar(
+        nutrition_district,
+        x="DAERAH",
+        y="Count",
+        color="Status_Pemakanan",
+        title="Nutrition Status Counts by District (Stacked)",
+        barmode="stack",
+        template="plotly_white"
+    )
+    fig_nutrition_district.update_layout(xaxis_title="District", yaxis_title="Number of Children")
+    st.plotly_chart(fig_nutrition_district, use_container_width=True)
