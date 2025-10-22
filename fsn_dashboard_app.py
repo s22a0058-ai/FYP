@@ -14,7 +14,7 @@ st.set_page_config(page_title="FSN Dashboard", layout="wide")
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel("cleaned_UMK_DATA_ANAK_2022.csv")
+    df = pd.read_csv("cleaned_UMK_DATA_ANAK_2022.csv")
     return df
 
 df = load_data()
