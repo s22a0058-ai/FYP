@@ -1,5 +1,3 @@
-streamlit run fsn_dashboard_app.py
-
 # =========================================================
 # DASHBOARD FOR FOOD SECURITY & NUTRITION (FSN) ANALYSIS
 # Dataset: UMK DATA ANAK 2022 (CLEANED)
