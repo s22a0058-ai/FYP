@@ -54,39 +54,6 @@ df, summary = load_and_prepare_data(CLEANED_CSV_URL)
 if df.empty:
     st.stop()
 
-# =========================================================
-# DASHBOARD FOR FOOD SECURITY & NUTRITION (FSN) ANALYSIS
-# Dataset: UMK DATA ANAK 2022 (CLEANED)
-# =========================================================
-
-import pandas as pd
-import streamlit as st
-import plotly.express as px
-
-# ==========================================
-# CONSTANT & DATA LOADING
-# ==========================================
-CLEANED_CSV_URL = 'https://raw.githubusercontent.com/s22a0058-ai/FYP/refs/heads/main/cleaned_UMK_DATA_ANAK_2022.csv'
-
-@st.cache_data
-def load_data(file_url):
-    """Loads the cleaned dataset from a public URL."""
-    try:
-        df = pd.read_csv(file_url)
-        
-        # Ensure 'Avg_Parental_Income' exists before filtering
-        df["Avg_Parental_Income"] = df[["Gaji_Bapa", "Gaji_Ibu"]].mean(axis=1)
-
-        # Standardize 'index' column names for value_counts() to 'Category' and 'Count'
-        # This prevents the need to hardcode 'index' later.
-        
-        return df
-    except Exception as e:
-        st.error(f"Failed to load data from URL: {e}")
-        st.stop()
-        
-df = load_data(CLEANED_CSV_URL)
-
 # ------------------------------------------
 # SIDEBAR FILTERS
 # ------------------------------------------
