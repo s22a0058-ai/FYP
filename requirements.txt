@@ -1,5 +1,5 @@
 pandas
-plotly.express
+plotly
 streamlit
 numpy
-plotly.graph_objects
+openpyxl
