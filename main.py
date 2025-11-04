@@ -118,7 +118,7 @@ average_income = round(df_filtered["Avg_Parental_Income"].mean(), 2)
 most_common_nutrition = df_filtered["Status_Pemakanan"].mode()[0] if not df_filtered["Status_Pemakanan"].mode().empty else "N/A"
 
 # Display KPI cards
-col1, col2, col3 = st.columns(4)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Children", total_children)
 col2.metric("Unique Districts", unique_districts)
 col3.metric("Average BMI", average_bmi)
