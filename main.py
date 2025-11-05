@@ -124,6 +124,51 @@ col2.metric("Unique Districts", unique_districts)
 col3.metric("Average BMI", average_bmi)
 col4.metric("Average Parental Income (RM)", f"{average_income:,.2f}")
 
+# ==========================================
+# 4. FSN INSIGHT SECTION (NEW FOR FYP)
+# ==========================================
+
+st.markdown("### 🧠 Food Security & Nutrition Insights")
+
+# --- Calculate Nutrition Summary Metrics ---
+if "Status_Pemakanan" in df_filtered.columns:
+    total_children = len(df_filtered)
+    nutrition_counts = df_filtered["Status_Pemakanan"].value_counts()
+    normal_count = nutrition_counts.get("Normal", 0)
+    underweight_count = nutrition_counts.get("Kurus", 0)
+    overweight_count = nutrition_counts.get("Gemuk", 0)
+
+    normal_pct = (normal_count / total_children) * 100 if total_children > 0 else 0
+    underweight_pct = (underweight_count / total_children) * 100 if total_children > 0 else 0
+    overweight_pct = (overweight_count / total_children) * 100 if total_children > 0 else 0
+
+    # Display KPI cards for Nutrition
+    colA, colB, colC = st.columns(3)
+    colA.metric("Normal Nutrition (%)", f"{normal_pct:.1f}%")
+    colB.metric("Underweight (%)", f"{underweight_pct:.1f}%")
+    colC.metric("Overweight (%)", f"{overweight_pct:.1f}%")
+
+# --- Correlation between Income and BMI ---
+if "Avg_Parental_Income" in df_filtered.columns:
+    correlation = df_filtered["Avg_Parental_Income"].corr(df_filtered["BMI"])
+    st.metric("Correlation (Income vs BMI)", f"{correlation:.2f}")
+
+# --- Short Insight Summary ---
+st.markdown("#### 📋 Key Interpretations")
+
+if total_children > 0:
+    insight_text = f"""
+    - The dataset currently contains **{total_children} valid children records** after filtering.
+    - Approximately **{normal_pct:.1f}%** of children have *normal* nutritional status, while **{underweight_pct:.1f}%** are *underweight* and **{overweight_pct:.1f}%** are *overweight*.
+    - The correlation between **parental income** and **BMI** is **{correlation:.2f}**, 
+      suggesting {'a positive' if correlation > 0 else 'a negative' if correlation < 0 else 'no clear'} relationship between socio-economic background and child nutrition.
+    - These findings highlight the link between **economic conditions** and **nutritional outcomes**, supporting the aim of the FSN Dashboard for descriptive analysis.
+    """
+    st.info(insight_text)
+else:
+    st.warning("No data available for generating insights based on current filters.")
+
+
 st.markdown("---")
 
 # --- TAB LAYOUT ---
