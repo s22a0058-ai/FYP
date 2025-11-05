@@ -390,4 +390,33 @@ with tab5:
 
 
 st.markdown("---")
+
+ # --- Admin / Viewer Section ---
+    st.subheader("📋 View Collected Feedback")
+
+    try:
+        feedback_df = pd.read_csv("usability_feedback.csv")
+
+        # Display the feedback table
+        st.dataframe(feedback_df, use_container_width=True)
+
+        # Summary metrics
+        st.markdown("### 📊 Feedback Summary")
+        avg_rating = feedback_df["Rating"].mean()
+        total_feedback = len(feedback_df)
+        st.metric("Average Usability Rating", f"{avg_rating:.2f} / 5")
+        st.metric("Total Feedback Collected", total_feedback)
+
+        # Download button for CSV
+        csv_data = feedback_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇️ Download All Feedback (CSV)",
+            data=csv_data,
+            file_name="usability_feedback_collected.csv",
+            mime="text/csv"
+        )
+
+    except FileNotFoundError:
+        st.warning("⚠️ No feedback data available yet. Submit a response to get started.")
+
 st.success("✅ Dashboard loaded successfully! Use the sidebar filters to explore the data.")
