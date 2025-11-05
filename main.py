@@ -346,21 +346,24 @@ with tab4:
 # ------------------------------------------
 # TAB 5: DASHBOARD USABILITY EVALUATION
 # ------------------------------------------
-with st.tab("🧩 Usability Evaluation"):
-    st.subheader("Dashboard Usability Feedback")
+with tab5:
+    st.subheader("🧩 Dashboard Usability Feedback")
     st.markdown("Please rate and comment on the usability of this dashboard:")
 
-    rating = st.slider("How would you rate the dashboard’s usability? (1 = Poor, 5 = Excellent)", 1, 5, 3)
+    rating = st.slider(
+        "How would you rate the dashboard’s usability? (1 = Poor, 5 = Excellent)", 
+        1, 5, 3
+    )
     feedback = st.text_area("Your feedback or suggestions:")
-    
+
     if st.button("Submit Feedback"):
         st.success("✅ Thank you for your feedback!")
         st.write("**Your Rating:**", rating)
         st.write("**Your Comment:**", feedback)
 
     st.info("""
-    This section supports Objective 3 by gathering feedback on the dashboard’s usability 
-    and ability to provide meaningful data insights for users.
+    This section supports **Objective 3** by collecting user feedback 
+    on the dashboard’s usability and its ability to present FSN insights effectively.
     """)
 
 
