@@ -350,20 +350,42 @@ with tab5:
     st.subheader("🧩 Dashboard Usability Feedback")
     st.markdown("Please rate and comment on the usability of this dashboard:")
 
+    # Input widgets
     rating = st.slider(
         "How would you rate the dashboard’s usability? (1 = Poor, 5 = Excellent)", 
         1, 5, 3
     )
     feedback = st.text_area("Your feedback or suggestions:")
 
+    # When user clicks submit
     if st.button("Submit Feedback"):
-        st.success("✅ Thank you for your feedback!")
+        # Record submission time
+        timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Create a small DataFrame for the new feedback
+        new_feedback = pd.DataFrame({
+            "Timestamp": [timestamp],
+            "Rating": [rating],
+            "Feedback": [feedback]
+        })
+
+        # Try to append or create the CSV file
+        try:
+            existing = pd.read_csv("usability_feedback.csv")
+            updated = pd.concat([existing, new_feedback], ignore_index=True)
+        except FileNotFoundError:
+            updated = new_feedback
+
+        updated.to_csv("usability_feedback.csv", index=False)
+        st.success("✅ Thank you! Your feedback has been recorded successfully.")
+
+        # Display the user’s submission
         st.write("**Your Rating:**", rating)
         st.write("**Your Comment:**", feedback)
 
     st.info("""
-    This section supports **Objective 3** by collecting user feedback 
-    on the dashboard’s usability and its ability to present FSN insights effectively.
+    This section supports **Objective 3** by collecting user feedback on the dashboard’s 
+    usability and effectiveness in communicating food security and nutrition insights.
     """)
 
 
