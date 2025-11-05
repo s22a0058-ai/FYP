@@ -344,32 +344,28 @@ with tab4:
         st.plotly_chart(fig_nutrition_district, use_container_width=True)
 
 # ------------------------------------------
-# TAB 5: DASHBOARD USABILITY EVALUATION
+# TAB 5: USABILITY EVALUATION (WITH FEEDBACK STORAGE & VIEW)
 # ------------------------------------------
 with tab5:
     st.subheader("🧩 Dashboard Usability Feedback")
     st.markdown("Please rate and comment on the usability of this dashboard:")
 
-    # Input widgets
+    # --- User Input Section ---
     rating = st.slider(
         "How would you rate the dashboard’s usability? (1 = Poor, 5 = Excellent)", 
         1, 5, 3
     )
     feedback = st.text_area("Your feedback or suggestions:")
 
-    # When user clicks submit
+    # --- Submit Feedback Button ---
     if st.button("Submit Feedback"):
-        # Record submission time
         timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Create a small DataFrame for the new feedback
         new_feedback = pd.DataFrame({
             "Timestamp": [timestamp],
             "Rating": [rating],
             "Feedback": [feedback]
         })
 
-        # Try to append or create the CSV file
         try:
             existing = pd.read_csv("usability_feedback.csv")
             updated = pd.concat([existing, new_feedback], ignore_index=True)
@@ -378,20 +374,12 @@ with tab5:
 
         updated.to_csv("usability_feedback.csv", index=False)
         st.success("✅ Thank you! Your feedback has been recorded successfully.")
-
-        # Display the user’s submission
         st.write("**Your Rating:**", rating)
         st.write("**Your Comment:**", feedback)
 
-    st.info("""
-    This section supports **Objective 3** by collecting user feedback on the dashboard’s 
-    usability and effectiveness in communicating food security and nutrition insights.
-    """)
+    st.markdown("---")
 
-
-st.markdown("---")
-
- # --- Admin / Viewer Section ---
+    # --- Admin / Viewer Section ---
     st.subheader("📋 View Collected Feedback")
 
     try:
@@ -418,5 +406,11 @@ st.markdown("---")
 
     except FileNotFoundError:
         st.warning("⚠️ No feedback data available yet. Submit a response to get started.")
+
+    st.info("""
+    This section supports **Objective 3** by allowing both data collection and 
+    analysis of user feedback, helping evaluate the dashboard’s usability and effectiveness.
+    """)
+
 
 st.success("✅ Dashboard loaded successfully! Use the sidebar filters to explore the data.")
