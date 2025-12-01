@@ -477,9 +477,6 @@ with tab5:
         elif admin_password != "":
             st.error("❌ Incorrect password. Please try again.")
 
-    except FileNotFoundError:
-        st.warning("⚠️ No feedback data available yet. Submit a response to get started.")
-
     st.info("""
     This section supports **Objective 3** by allowing both data collection and 
     analysis of user feedback, helping evaluate the dashboard’s usability and effectiveness.
