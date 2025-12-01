@@ -344,138 +344,129 @@ with tab4:
         st.plotly_chart(fig_nutrition_district, use_container_width=True)
 
 # ------------------------------------------
-# TAB 5: USABILITY EVALUATION (ADVANCED ANALYTICS)
+# TAB 5: USABILITY EVALUATION (QUESTIONNAIRE)
 # ------------------------------------------
 with tab5:
-    st.subheader("🧩 Dashboard Usability Feedback")
-    st.markdown("Please rate and comment on the usability of this dashboard:")
+    st.subheader("🧩 Dashboard Usability Evaluation")
+    st.markdown("Please answer the following questions to help us improve the dashboard:")
 
-    # --- User Input Section ---
-    rating = st.slider(
-        "How would you rate the dashboard’s usability? (1 = Poor, 5 = Excellent)", 
-        1, 5, 3
-    )
-    feedback = st.text_area("Your feedback or suggestions:")
+    # ================================
+    # SECTION A: Dashboard Usability
+    # ================================
+    st.markdown("### 🔹 Section A: Dashboard Usability (1 = Strongly Disagree, 5 = Strongly Agree)")
 
-    if st.button("Submit Feedback"):
+    q1 = st.slider("1. The dashboard is easy to navigate.", 1, 5, 3)
+    q2 = st.slider("2. The information displayed is clear and easy to understand.", 1, 5, 3)
+    q3 = st.slider("3. The dashboard layout is visually appealing.", 1, 5, 3)
+    q4 = st.slider("4. The filters are easy to use (Gender, Race, District).", 1, 5, 3)
+    q5 = st.slider("5. The charts/graphs help me understand the data better.", 1, 5, 3)
+
+    # ================================
+    # SECTION B: Relevance & Usefulness
+    # ================================
+    st.markdown("### 🔹 Section B: Usefulness & Relevance")
+
+    q6 = st.slider("6. The dashboard provides useful insights on food security & nutrition.", 1, 5, 3)
+    q7 = st.slider("7. The visualizations help me identify trends/issues effectively.", 1, 5, 3)
+
+    # ================================
+    # SECTION C: Overall Satisfaction
+    # ================================
+    st.markdown("### 🔹 Section C: Overall Satisfaction")
+
+    q8 = st.slider("8. Overall, I am satisfied with this dashboard.", 1, 5, 3)
+
+    # ================================
+    # SECTION D: Open-Ended Questions
+    # ================================
+    st.markdown("### 🔹 Section D: Open-Ended Feedback")
+
+    open1 = st.text_area("9. What features do you like the most?")
+    open2 = st.text_area("10. What improvements would you suggest?")
+
+    # ================================
+    # SAVE FEEDBACK
+    # ================================
+    if st.button("Submit Questionnaire"):
         timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-        new_feedback = pd.DataFrame({
-            "Timestamp": [timestamp],
-            "Rating": [rating],
-            "Feedback": [feedback]
-        })
+
+        new_response = pd.DataFrame([{
+            "Timestamp": timestamp,
+            "Q1_Easy_Navigation": q1,
+            "Q2_Clear_Information": q2,
+            "Q3_Visual_Appeal": q3,
+            "Q4_Easy_Filters": q4,
+            "Q5_Charts_Helpful": q5,
+            "Q6_Useful_Insights": q6,
+            "Q7_Identify_Trends": q7,
+            "Q8_Overall_Satisfaction": q8,
+            "Favorite_Feature": open1,
+            "Improvement_Suggestion": open2
+        }])
 
         try:
-            existing = pd.read_csv("usability_feedback.csv")
-            updated = pd.concat([existing, new_feedback], ignore_index=True)
+            existing = pd.read_csv("usability_responses.csv")
+            updated = pd.concat([existing, new_response], ignore_index=True)
         except FileNotFoundError:
-            updated = new_feedback
+            updated = new_response
 
-        updated.to_csv("usability_feedback.csv", index=False)
-        st.success("✅ Thank you! Your feedback has been recorded successfully.")
-        st.write("**Your Rating:**", rating)
-        st.write("**Your Comment:**", feedback)
+        updated.to_csv("usability_responses.csv", index=False)
+        st.success("✅ Thank you! Your responses have been successfully recorded.")
 
     st.markdown("---")
 
-    # ============================
-    # ADMIN SECTION (Enhanced)
-    # ============================
-    st.subheader("👩‍💻 Admin Panel (Private)")
+    # ================================
+    # ADMIN PANEL (PASSWORD PROTECTED)
+    # ================================
+    st.subheader("👩‍💻 Admin Panel (Private Access)")
 
-    show_admin = st.checkbox("I am the admin (show collected feedback)")
+    admin_access = st.checkbox("I am the admin (show results)")
 
-    if show_admin:
-        admin_password = st.text_input("Enter admin password:", type="password")
+    if admin_access:
+        password = st.text_input("Enter admin password:", type="password")
 
-        if admin_password == "fsn2025":  
+        if password == "fsn2025":
             try:
-                feedback_df = pd.read_csv("usability_feedback.csv")
+                df_feedback = pd.read_csv("usability_responses.csv")
 
-                st.markdown("### 📋 Collected Feedback")
-                st.dataframe(feedback_df, use_container_width=True)
+                st.markdown("### 📋 All Collected Questionnaire Responses")
+                st.dataframe(df_feedback, use_container_width=True)
 
-                # --- Summary Metrics ---
-                st.markdown("### 📊 Feedback Summary")
-                avg_rating = feedback_df["Rating"].mean()
-                total_feedback = len(feedback_df)
-                st.metric("Average Usability Rating", f"{avg_rating:.2f} / 5")
-                st.metric("Total Feedback Collected", total_feedback)
+                # Summary stats
+                st.markdown("### 📊 Summary of Ratings")
 
-                # --- Rating Distribution Chart ---
-                st.markdown("#### ⭐ Rating Distribution")
-                fig_rating_dist = px.bar(
-                    feedback_df["Rating"].value_counts().sort_index(),
-                    title="Rating Distribution",
-                    labels={"index": "Rating", "value": "Count"},
+                numeric_cols = [
+                    "Q1_Easy_Navigation", "Q2_Clear_Information", "Q3_Visual_Appeal",
+                    "Q4_Easy_Filters", "Q5_Charts_Helpful", "Q6_Useful_Insights",
+                    "Q7_Identify_Trends", "Q8_Overall_Satisfaction"
+                ]
+                avg_scores = df_feedback[numeric_cols].mean()
+
+                st.write(avg_scores)
+
+                fig_avg = px.bar(
+                    avg_scores,
+                    title="Average Scores for Each Question",
+                    labels={"index": "Question", "value": "Average Rating"},
                     template="plotly_white"
                 )
-                st.plotly_chart(fig_rating_dist, use_container_width=True)
+                st.plotly_chart(fig_avg, use_container_width=True)
 
-                # --- Rating Trend Over Time ---
-                st.markdown("#### 📈 Rating Trend Over Time")
-                feedback_df["Timestamp"] = pd.to_datetime(feedback_df["Timestamp"])
-                fig_trend = px.line(
-                    feedback_df.sort_values("Timestamp"),
-                    x="Timestamp",
-                    y="Rating",
-                    title="Usability Rating Trend",
-                    markers=True,
-                    template="plotly_white"
-                )
-                st.plotly_chart(fig_trend, use_container_width=True)
-
-                # --- Simple Sentiment Analysis ---
-                st.markdown("#### 😊 Sentiment Analysis on Comments")
-
-                def classify_sentiment(text):
-                    text = text.lower()
-                    positive_words = ["good", "nice", "easy", "helpful", "clear", "great"]
-                    negative_words = ["bad", "difficult", "confusing", "slow", "not good"]
-
-                    if any(word in text for word in positive_words):
-                        return "Positive"
-                    elif any(word in text for word in negative_words):
-                        return "Negative"
-                    else:
-                        return "Neutral"
-
-                feedback_df["Sentiment"] = feedback_df["Feedback"].fillna("").apply(classify_sentiment)
-
-                fig_sentiment = px.pie(
-                    feedback_df,
-                    names="Sentiment",
-                    title="Feedback Sentiment Distribution",
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                st.plotly_chart(fig_sentiment, use_container_width=True)
-
-                # --- Extract Most Frequent Words ---
-                st.markdown("#### 🔍 Most Common Keywords in Feedback")
-                all_words = " ".join(feedback_df["Feedback"].dropna().tolist()).lower().split()
-                stopwords = ["the", "and", "is", "to", "a", "of", "for", "it", "this"]
-                words = [w for w in all_words if w not in stopwords and len(w) > 3]
-
-                if words:
-                    word_freq = pd.Series(words).value_counts().head(10)
-                    st.bar_chart(word_freq)
-                else:
-                    st.info("No keywords available yet.")
-
-                # --- Download Feedback CSV ---
-                csv_data = feedback_df.to_csv(index=False).encode('utf-8')
+                # Download option
+                csv_data = df_feedback.to_csv(index=False).encode('utf-8')
                 st.download_button(
-                    label="⬇️ Download All Feedback (CSV)",
+                    label="⬇️ Download All Responses (CSV)",
                     data=csv_data,
-                    file_name="usability_feedback_collected.csv",
+                    file_name="usability_responses.csv",
                     mime="text/csv"
                 )
 
             except FileNotFoundError:
-                st.warning("⚠️ No feedback data available yet.")
+                st.warning("⚠️ No responses available yet. Collect some data first.")
 
-        elif admin_password != "":
-            st.error("❌ Incorrect password. Please try again.")
+        elif password:
+            st.error("❌ Incorrect password")
+
 
     st.info("""
     This section supports **Objective 3** by allowing both data collection and 
