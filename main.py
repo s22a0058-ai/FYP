@@ -344,7 +344,7 @@ with tab4:
         st.plotly_chart(fig_nutrition_district, use_container_width=True)
 
 # ------------------------------------------
-# TAB 5: USABILITY EVALUATION (WITH FEEDBACK STORAGE & VIEW)
+# TAB 5: USABILITY EVALUATION (ADVANCED ANALYTICS)
 # ------------------------------------------
 with tab5:
     st.subheader("🧩 Dashboard Usability Feedback")
@@ -357,7 +357,6 @@ with tab5:
     )
     feedback = st.text_area("Your feedback or suggestions:")
 
-    # --- Submit Feedback Button ---
     if st.button("Submit Feedback"):
         timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
         new_feedback = pd.DataFrame({
@@ -379,30 +378,104 @@ with tab5:
 
     st.markdown("---")
 
-    # --- Admin / Viewer Section ---
-    st.subheader("📋 View Collected Feedback")
+    # ============================
+    # ADMIN SECTION (Enhanced)
+    # ============================
+    st.subheader("👩‍💻 Admin Panel (Private)")
 
-    try:
-        feedback_df = pd.read_csv("usability_feedback.csv")
+    show_admin = st.checkbox("I am the admin (show collected feedback)")
 
-        # Display the feedback table
-        st.dataframe(feedback_df, use_container_width=True)
+    if show_admin:
+        admin_password = st.text_input("Enter admin password:", type="password")
 
-        # Summary metrics
-        st.markdown("### 📊 Feedback Summary")
-        avg_rating = feedback_df["Rating"].mean()
-        total_feedback = len(feedback_df)
-        st.metric("Average Usability Rating", f"{avg_rating:.2f} / 5")
-        st.metric("Total Feedback Collected", total_feedback)
+        if admin_password == "fsn2025":  
+            try:
+                feedback_df = pd.read_csv("usability_feedback.csv")
 
-        # Download button for CSV
-        csv_data = feedback_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="⬇️ Download All Feedback (CSV)",
-            data=csv_data,
-            file_name="usability_feedback_collected.csv",
-            mime="text/csv"
-        )
+                st.markdown("### 📋 Collected Feedback")
+                st.dataframe(feedback_df, use_container_width=True)
+
+                # --- Summary Metrics ---
+                st.markdown("### 📊 Feedback Summary")
+                avg_rating = feedback_df["Rating"].mean()
+                total_feedback = len(feedback_df)
+                st.metric("Average Usability Rating", f"{avg_rating:.2f} / 5")
+                st.metric("Total Feedback Collected", total_feedback)
+
+                # --- Rating Distribution Chart ---
+                st.markdown("#### ⭐ Rating Distribution")
+                fig_rating_dist = px.bar(
+                    feedback_df["Rating"].value_counts().sort_index(),
+                    title="Rating Distribution",
+                    labels={"index": "Rating", "value": "Count"},
+                    template="plotly_white"
+                )
+                st.plotly_chart(fig_rating_dist, use_container_width=True)
+
+                # --- Rating Trend Over Time ---
+                st.markdown("#### 📈 Rating Trend Over Time")
+                feedback_df["Timestamp"] = pd.to_datetime(feedback_df["Timestamp"])
+                fig_trend = px.line(
+                    feedback_df.sort_values("Timestamp"),
+                    x="Timestamp",
+                    y="Rating",
+                    title="Usability Rating Trend",
+                    markers=True,
+                    template="plotly_white"
+                )
+                st.plotly_chart(fig_trend, use_container_width=True)
+
+                # --- Simple Sentiment Analysis ---
+                st.markdown("#### 😊 Sentiment Analysis on Comments")
+
+                def classify_sentiment(text):
+                    text = text.lower()
+                    positive_words = ["good", "nice", "easy", "helpful", "clear", "great"]
+                    negative_words = ["bad", "difficult", "confusing", "slow", "not good"]
+
+                    if any(word in text for word in positive_words):
+                        return "Positive"
+                    elif any(word in text for word in negative_words):
+                        return "Negative"
+                    else:
+                        return "Neutral"
+
+                feedback_df["Sentiment"] = feedback_df["Feedback"].fillna("").apply(classify_sentiment)
+
+                fig_sentiment = px.pie(
+                    feedback_df,
+                    names="Sentiment",
+                    title="Feedback Sentiment Distribution",
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                st.plotly_chart(fig_sentiment, use_container_width=True)
+
+                # --- Extract Most Frequent Words ---
+                st.markdown("#### 🔍 Most Common Keywords in Feedback")
+                all_words = " ".join(feedback_df["Feedback"].dropna().tolist()).lower().split()
+                stopwords = ["the", "and", "is", "to", "a", "of", "for", "it", "this"]
+                words = [w for w in all_words if w not in stopwords and len(w) > 3]
+
+                if words:
+                    word_freq = pd.Series(words).value_counts().head(10)
+                    st.bar_chart(word_freq)
+                else:
+                    st.info("No keywords available yet.")
+
+                # --- Download Feedback CSV ---
+                csv_data = feedback_df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="⬇️ Download All Feedback (CSV)",
+                    data=csv_data,
+                    file_name="usability_feedback_collected.csv",
+                    mime="text/csv"
+                )
+
+            except FileNotFoundError:
+                st.warning("⚠️ No feedback data available yet.")
+
+        elif admin_password != "":
+            st.error("❌ Incorrect password. Please try again.")
 
     except FileNotFoundError:
         st.warning("⚠️ No feedback data available yet. Submit a response to get started.")
